@@ -4,6 +4,7 @@
 [![Build Status](https://travis-ci.org/allenai/allennlp.svg?branch=master)](https://travis-ci.org/allenai/allennlp)
 [![codecov](https://codecov.io/gh/allenai/allennlp/branch/master/graph/badge.svg)](https://codecov.io/gh/allenai/allennlp)
 [![docs](https://readthedocs.org/projects/allennlp/badge/?version=latest)](https://readthedocs.org/projects/allennlp/)
+[![docker](https://images.microbadger.com/badges/image/allennlp/allennlp.svg)](https://microbadger.com/images/allennlp/allennlp)
 
 An [Apache 2.0](https://github.com/allenai/allennlp/blob/master/LICENSE) NLP research library, built on PyTorch,
 for developing state-of-the-art deep learning models on a wide variety of linguistic tasks.
@@ -103,7 +104,8 @@ used for development along with all the dependencies needed to run AllenNLP.
     conda create -n allennlp python=3.6
     ```
 
-4.  Now activate the Conda environment.  You will need to activate the Conda environment in each terminal in which you want to use AllenNLP.
+4.  Now activate the Conda environment.  You will need to activate the Conda environment in each terminal in which you want 
+to use AllenNLP.
 
     ```
     source activate allennlp
@@ -116,12 +118,6 @@ used for development along with all the dependencies needed to run AllenNLP.
     ```
 
 6. Visit http://pytorch.org/ and install the relevant pytorch package.
-
-7.  Set the `PYTHONHASHSEED` for repeatable experiments.  You may want to put this in your `.bashrc`.
-
-    ```
-    export PYTHONHASHSEED=2157
-    ```
 
 You should now be able to test your installation with `pytest -v`.  Congratulations!
 
@@ -199,5 +195,5 @@ The pod name will be your job name followed by some additional characters.
 
 AllenNLP is an open-source project backed by [the Allen Institute for Artificial Intelligence (AI2)](http://www.allenai.org).
 AI2 is a non-profit institute with the mission to contribute to humanity through high-impact AI research and engineering.
-To learn more about who specifically contributed to this codebase, see [our contributors](https://github.com/allenai/allennlp/graphs/contributors)
-page.
+To learn more about who specifically contributed to this codebase, see [our contributors]
+(https://github.com/allenai/allennlp/graphs/contributors) page.

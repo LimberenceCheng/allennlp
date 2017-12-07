@@ -3,15 +3,20 @@ Various utilities that don't fit anwhere else.
 """
 
 from itertools import zip_longest
-from typing import Any, Callable, Dict, List, TypeVar
+from typing import Any, Callable, Dict, List, Tuple, TypeVar, Union
 import random
 
 import torch
-import numpy as np
+import numpy
+import spacy
+from spacy.language import Language as SpacyModelType
+
+from allennlp.common.checks import log_pytorch_version_info
+from allennlp.common.params import Params
 
 JsonDict = Dict[str, Any]  # pylint: disable=invalid-name
 
-def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name
+def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name,too-many-return-statements
     """
     Sanitize turns PyTorch and Numpy types into basic Python types so they
     can be serialized into JSON.
@@ -19,13 +24,15 @@ def sanitize(x: Any) -> Any:  # pylint: disable=invalid-name
     if isinstance(x, (str, float, int, bool)):
         # x is already serializable
         return x
-    elif isinstance(x, torch.Tensor):
+    elif isinstance(x, torch.autograd.Variable):
+        return sanitize(x.data)
+    elif isinstance(x, torch._TensorBase):  # pylint: disable=protected-access
         # tensor needs to be converted to a list (and moved to cpu if necessary)
         return x.cpu().tolist()
-    elif isinstance(x, np.ndarray):
+    elif isinstance(x, numpy.ndarray):
         # array needs to be converted to a list
         return x.tolist()
-    elif isinstance(x, np.number):
+    elif isinstance(x, numpy.number):
         # NumPy numbers need to be converted to Python numbers
         return x.item()
     elif isinstance(x, dict):
@@ -70,7 +77,9 @@ def pad_sequence_to_length(sequence: List,
         shorter ones are padded to it.
 
     default_value: Callable, default=lambda: 0
-        Callable that outputs a default value (of any type) to use as padding values.
+        Callable that outputs a default value (of any type) to use as padding values.  This is
+        a lambda to avoid using the same object when the default value is more complex, like a
+        list.
 
     padding_on_right : bool, default=True
         When we add padding tokens (or truncate the sequence), should we do it on the right or
@@ -80,10 +89,12 @@ def pad_sequence_to_length(sequence: List,
     -------
     padded_sequence : List
     """
+    # Truncates the sequence to the desired length.
     if padding_on_right:
         padded_sequence = sequence[:desired_length]
     else:
         padded_sequence = sequence[-desired_length:]
+    # Continues to pad with default_value() until we reach the desired length.
     for _ in range(desired_length - len(padded_sequence)):
         if padding_on_right:
             padded_sequence.append(default_value())
@@ -118,3 +129,58 @@ def namespace_match(pattern: str, namespace: str):
     elif pattern == namespace:
         return True
     return False
+
+
+def prepare_environment(params: Union[Params, Dict[str, Any]]):
+    """
+    Sets random seeds for reproducible experiments. This may not work as expected
+    if you use this from within a python project in which you have already imported Pytorch.
+    If you use the scripts/run_model.py entry point to training models with this library,
+    your experiments should be reasonably reproducible. If you are using this from your own
+    project, you will want to call this function before importing Pytorch. Complete determinism
+    is very difficult to achieve with libraries doing optimized linear algebra due to massively
+    parallel execution, which is exacerbated by using GPUs.
+
+    Parameters
+    ----------
+    params: Params object or dict, required.
+        A ``Params`` object or dict holding the json parameters.
+    """
+    seed = params.pop("random_seed", 13370)
+    numpy_seed = params.pop("numpy_seed", 1337)
+    torch_seed = params.pop("pytorch_seed", 133)
+
+    if seed is not None:
+        random.seed(seed)
+    if numpy_seed is not None:
+        numpy.random.seed(numpy_seed)
+    if torch_seed is not None:
+        torch.manual_seed(torch_seed)
+        # Seed all GPUs with the same seed if available.
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed_all(torch_seed)
+
+    log_pytorch_version_info()
+
+
+LOADED_SPACY_MODELS: Dict[Tuple[str, bool, bool, bool], SpacyModelType] = {}
+
+
+def get_spacy_model(spacy_model_name: str, pos_tags: bool, parse: bool, ner: bool) -> SpacyModelType:
+    """
+    In order to avoid loading spacy models a whole bunch of times, we'll save references to them,
+    keyed by the options we used to create the spacy model, so any particular configuration only
+    gets loaded once.
+    """
+    options = (spacy_model_name, pos_tags, parse, ner)
+    if options not in LOADED_SPACY_MODELS:
+        disable = ['vectors', 'textcat']
+        if not pos_tags:
+            disable.append('tagger')
+        if not parse:
+            disable.append('parser')
+        if not ner:
+            disable.append('ner')
+        spacy_model = spacy.load(spacy_model_name, disable=disable)
+        LOADED_SPACY_MODELS[options] = spacy_model
+    return LOADED_SPACY_MODELS[options]

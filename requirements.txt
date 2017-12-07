@@ -20,20 +20,30 @@ overrides
 nltk
 
 # Mainly used for the faster tokenizer.
-spacy
+spacy>=2.0,<2.1
 
 # Used by span prediction models.
 numpy
 
+# Used in coreference resolution evaluation metrics.
+scipy
+scikit-learn
+
 # Training visualisation using tensorboard.
-pillow # A dependency of tensorboard-pytorch which is not recorded.
-tensorboard-pytorch
+tensorboard
+
+# Required by torch.utils.ffi
+cffi==1.11.2
 
 # aws commandline tools for running on Docker remotely.
 awscli>=1.11.91
 
 # REST interface for models
 sanic==0.6.0
+sanic-cors==0.6.0.2
+
+# Talk to postgres demo database
+psycopg2
 
 #### LIBRARIES USED IN SCRIPTS ####
 # argument parsing in for data cleaning scripts
@@ -50,3 +60,7 @@ editdistance
 
 # Tutorial notebooks
 jupyter
+
+# For pretrained model weights
+h5py
+

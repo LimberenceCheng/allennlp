@@ -2,11 +2,11 @@
 from typing import List
 
 from allennlp.common import Params
-from allennlp.data import Dataset, Instance, Vocabulary
+from allennlp.common.testing import AllenNlpTestCase
+from allennlp.data import Dataset, Instance, Token, Vocabulary
 from allennlp.data.fields import TextField
 from allennlp.data.iterators import BasicIterator
 from allennlp.data.token_indexers import SingleIdTokenIndexer
-from allennlp.common.testing import AllenNlpTestCase
 
 class IteratorTest(AllenNlpTestCase):
     def setUp(self):
@@ -30,7 +30,8 @@ class IteratorTest(AllenNlpTestCase):
                 ]
         self.dataset = Dataset(self.instances)
 
-    def create_instance(self, tokens: List[str]):
+    def create_instance(self, str_tokens: List[str]):
+        tokens = [Token(t) for t in str_tokens]
         instance = Instance({'text': TextField(tokens, self.token_indexers)})
         instance.index_fields(self.vocab)
         return instance
@@ -50,7 +51,9 @@ class TestBasicIterator(IteratorTest):
         iterator = BasicIterator(batch_size=2)
         batches = list(iterator(self.dataset, num_epochs=1))
         # We just want to get the single-token array for the text field in the instance.
-        instances = [tuple(instance) for batch in batches for instance in batch['text']["tokens"]]
+        instances = [tuple(instance.data.cpu().numpy())
+                     for batch in batches
+                     for instance in batch['text']["tokens"]]
         assert len(instances) == 5
         self.assert_instances_are_correct(instances)
 
@@ -58,7 +61,9 @@ class TestBasicIterator(IteratorTest):
         generator = BasicIterator(batch_size=2)(self.dataset)
         batches = [next(generator) for _ in range(18)]  # going over the data 6 times
         # We just want to get the single-token array for the text field in the instance.
-        instances = [tuple(instance) for batch in batches for instance in batch['text']["tokens"]]
+        instances = [tuple(instance.data.cpu().numpy())
+                     for batch in batches
+                     for instance in batch['text']["tokens"]]
         assert len(instances) == 5 * 6
         self.assert_instances_are_correct(instances)
 
